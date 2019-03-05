@@ -1,5 +1,4 @@
 #include <utility>
-#include <iostream>
 
 #include "SimpleLRU.h"
 
@@ -54,9 +53,10 @@ namespace Afina {
             if (del_node == _lru_index.end())
                 return false;
 
+            _lru_index.erase(key);
+
             swap((*del_node).second.get().prev->next, (*del_node).second.get().next);
-            delete &(*del_node).second.get();
-            _lru_index.erase(del_node);
+            (*del_node).second.get().next = nullptr;
             return true;
         }
 
@@ -74,12 +74,14 @@ namespace Afina {
         }
 
         bool SimpleLRU::delete_oldest_node() {
-            if (_lru_head->next->next = nullptr)
+            lru_node * old_node = _lru_head->next.get();
+            if (old_node == nullptr)
                 return false;
-            _current_size -= _lru_head->key.size() + _lru_head->value.size();
-            std::string key = _lru_head->key;
-            swap(_lru_head->next, _lru_head->next->next);
-            _lru_index.erase(key);
+            _current_size -= _lru_head->next->key.size() + _lru_head->next->value.size();
+            _lru_index.erase(old_node->key);
+            old_node->next->prev = _lru_head.get();
+            swap(_lru_head->next, old_node->next);
+            old_node->next = nullptr;
             return true;
         }
 
@@ -115,7 +117,7 @@ namespace Afina {
             swap(current_node->prev->next, current_node->next);
             current_node->prev = _lru_tail->prev;
             swap(current_node->next, _lru_tail->prev->next);
-            _lru_tail = current_node;
+            _lru_tail->prev = current_node;
         }
 
         bool SimpleLRU::insert_new_node(const std::string &key, const std::string &value) {

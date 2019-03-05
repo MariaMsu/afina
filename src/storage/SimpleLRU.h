@@ -35,12 +35,13 @@ namespace Afina {
 
             ~SimpleLRU() {
                 _lru_index.clear();
-                _lru_head.reset(); // TODO: Here is stack overflow
 
-//                lru_node * current;
-//                while (_lru_head!= nullptr){
-//
-//                }
+                while (_lru_head.get() != _lru_tail){
+                    _lru_tail = _lru_tail->prev;
+                    _lru_tail->next.reset();
+                }
+                _lru_head.reset();
+
             }
 
             // Implements Afina::Storage interface
