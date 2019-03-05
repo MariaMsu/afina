@@ -21,11 +21,26 @@ namespace Afina {
  */
         class SimpleLRU : public Afina::Storage {
         public:
-            SimpleLRU(size_t max_size = 1024) : _max_size(max_size) {}
+            SimpleLRU(size_t max_size = 1024) : _max_size(max_size) {
+
+                _lru_head = std::unique_ptr<lru_node>(new lru_node);
+                _lru_head->prev = nullptr;
+
+                _lru_tail = new lru_node;
+                _lru_tail->next = nullptr;
+                _lru_head->next = std::unique_ptr<lru_node>(_lru_tail);
+
+                _lru_head->next->prev = _lru_head.get();
+            }
 
             ~SimpleLRU() {
                 _lru_index.clear();
                 _lru_head.reset(); // TODO: Here is stack overflow
+
+//                lru_node * current;
+//                while (_lru_head!= nullptr){
+//
+//                }
             }
 
             // Implements Afina::Storage interface
@@ -51,17 +66,6 @@ namespace Afina {
                 lru_node *prev;
                 std::unique_ptr<lru_node> next;
 
-//                lru_node(std::string key, std::string value, lru_node *tail) :
-//                        key(std::move(key)), value(std::move(value)),
-//                        prev(nullptr),
-//                        next(nullptr) {
-//                    std::unique_ptr<lru_node>(this).swap(tail->next);
-//                    tail = this;
-//                }
-//
-//                ~lru_node() {
-//                    prev->next.swap(next);
-//                }
             };
 
             // Maximum number of bytes could be stored in this cache.
@@ -69,28 +73,29 @@ namespace Afina {
             std::size_t _max_size;
 
             // Current total size of stored bytes
-            std::size_t _current_size;
+            std::size_t _current_size = 0;
 
             // Main storage of lru_nodes, elements in this list ordered descending by "freshness": in the head
             // element that wasn't used for longest time.
             //
             // List owns all nodes
-            // null if cash is empty
-            std::unique_ptr<lru_node> _lru_head = nullptr;
+            std::unique_ptr<lru_node> _lru_head;
 
             // newest element
-            // null if cash is empty
-            lru_node *_lru_tail = nullptr;
+            lru_node *_lru_tail;
 
             // Index of nodes from list above, allows fast random access to elements by lru_node#key
             std::map<std::reference_wrapper<const std::string>,
-                    std::reference_wrapper<lru_node>> _lru_index;
+                    std::reference_wrapper<lru_node>,
+                    std::less<std::string>> _lru_index;
 
             bool delete_oldest_node();
 
             lru_node *create_new_node(std::string key, std::string value);
 
-            void move_to_tail(const std::string& key);
+            void move_to_tail(const std::string &key);
+
+            bool insert_new_node(const std::string &key, const std::string &value);
         };
 
     } // namespace Backend
