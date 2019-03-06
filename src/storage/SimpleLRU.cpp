@@ -8,7 +8,7 @@ namespace Afina {
         // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Put(const std::string &key, const std::string &value) {
             //there is object with the key
-            if (_lru_index.find(std::reference_wrapper<const std::string>(key)) != _lru_index.end())
+            if (_lru_index.find(key) != _lru_index.end())
                 return Set(key, value);
 
             return insert_new_node(key, value);
@@ -17,7 +17,7 @@ namespace Afina {
         // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::PutIfAbsent(const std::string &key, const std::string &value) {
             //there is object with the key
-            if (_lru_index.find(std::reference_wrapper<const std::string>(key)) != _lru_index.end())
+            if (_lru_index.find(key) != _lru_index.end())
                 return false;
 
             return insert_new_node(key, value);
@@ -27,7 +27,7 @@ namespace Afina {
         // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Set(const std::string &key, const std::string &value) {
             //there is no object with the key
-            if (_lru_index.find(std::reference_wrapper<const std::string>(key)) == _lru_index.end())
+            if (_lru_index.find(key) == _lru_index.end())
                 return false;
 
             //memory overruns
@@ -37,9 +37,7 @@ namespace Afina {
                 - _lru_index.at(key).get().value.size()
                 > _max_size)
                 return false;
-//todo difference std::wrapper?
-            _lru_index.at(std::reference_wrapper<const std::string>(key)) = std::reference_wrapper<lru_node>(
-                    *create_new_node(key, value));
+            _lru_index.at(key) = *create_new_node(key, value);
 
             move_to_tail(key);
             return true;
@@ -47,7 +45,7 @@ namespace Afina {
 
         // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Delete(const std::string &key) {
-            auto del_node = _lru_index.find(std::reference_wrapper<const std::string>(key));
+            auto del_node = _lru_index.find(key);
 
             //there is no object with the key
             if (del_node == _lru_index.end())
@@ -63,18 +61,18 @@ namespace Afina {
         // See MapBasedGlobalLockImpl.h
         bool SimpleLRU::Get(const std::string &key, std::string &value) {
             //there is no object with the key
-            if (_lru_index.find(std::reference_wrapper<const std::string>(key)) == _lru_index.end()) {
+            if (_lru_index.find(key) == _lru_index.end()) {
                 value = "";
                 return false;
             }
 
-            value = _lru_index.at(std::reference_wrapper<const std::string>(key)).get().value;
+            value = _lru_index.at(key).get().value;
             move_to_tail(key);
             return true;
         }
 
         bool SimpleLRU::delete_oldest_node() {
-            lru_node * old_node = _lru_head->next.get();
+            lru_node *old_node = _lru_head->next.get();
             if (old_node == nullptr)
                 return false;
             _current_size -= _lru_head->next->key.size() + _lru_head->next->value.size();
@@ -100,7 +98,7 @@ namespace Afina {
         }
 
         void SimpleLRU::move_to_tail(const std::string &key) {
-            auto mov_node = _lru_index.find(std::reference_wrapper<const std::string>(key));
+            auto mov_node = _lru_index.find(key);
 
             //there is no object with the key
             if (mov_node == _lru_index.end()) {
@@ -129,8 +127,7 @@ namespace Afina {
 
             lru_node *new_node = create_new_node(key, value);
             _current_size += key.size() + value.size();
-            return _lru_index.insert({std::reference_wrapper<const std::string>(new_node->key),
-                                      std::reference_wrapper<lru_node>(*new_node)}).second;
+            return _lru_index.insert({new_node->key, *new_node}).second;
         }
     } // namespace Backend
 } // namespace Afina
