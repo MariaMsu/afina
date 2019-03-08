@@ -43,7 +43,7 @@ private:
     std::shared_ptr<spdlog::logger> _logger;
 
     // Atomic flag to notify threads when it is time to stop. Note that
-    // flag must be atomic in order to safely publisj changes cross thread
+    // flag must be atomic in order to safely public changes cross thread
     // bounds
     std::atomic<bool> running;
 

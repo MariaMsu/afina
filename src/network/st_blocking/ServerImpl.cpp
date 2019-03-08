@@ -94,7 +94,7 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 
     // Start listening. The second parameter is the "backlog", or the maximum number of
     // connections that we'll allow to queue up. Note that listen() doesn't block until
-    // incoming connections arrive. It just makesthe OS aware that this process is willing
+    // incoming connections arrive. It just makes the OS aware that this process is willing
     // to accept connections on this socket (which is bound to a specific IP and port)
     if (listen(_server_socket, 5) == -1) {
         close(_server_socket);
@@ -171,7 +171,7 @@ void ServerImpl::OnRun() {
             while ((readed_bytes = read(client_socket, client_buffer, sizeof(client_buffer))) > 0) {
                 _logger->debug("Got {} bytes from socket", readed_bytes);
 
-                // Single block of data readed from the socket could trigger inside actions a multiple times,
+                // Single block of data read from the socket could trigger inside actions a multiple times,
                 // for example:
                 // - read#0: [<command1 start>]
                 // - read#1: [<command1 end> <argument> <command2> <argument for command 2> <command3> ... ]
@@ -230,7 +230,7 @@ void ServerImpl::OnRun() {
                         argument_for_command.resize(0);
                         parser.Reset();
                     }
-                } // while (readed_bytes)
+                } // while (read_bytes)
             }
 
             if (readed_bytes == 0) {

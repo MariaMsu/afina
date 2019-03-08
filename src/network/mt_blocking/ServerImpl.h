@@ -5,6 +5,8 @@
 #include <thread>
 
 #include <afina/network/Server.h>
+#include <condition_variable>
+
 
 namespace spdlog {
 class logger;
@@ -21,6 +23,7 @@ namespace MTblocking {
 class ServerImpl : public Server {
 public:
     ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl);
+
     ~ServerImpl();
 
     // See Server.h
@@ -52,6 +55,17 @@ private:
 
     // Thread to run network on
     std::thread _thread;
+
+    //worker counter
+    std::atomic<int> workers;
+
+    //max number of workers
+    const int max_workers = 5;
+
+    std::condition_variable check_alive_workers_number;
+    std::mutex one_thread_stopped;
+
+    void user_handler(int client_socket);
 };
 
 } // namespace MTblocking

@@ -1,4 +1,4 @@
-#ifndef AFINA_PROTOCOL_PARSER_H
+ #ifndef AFINA_PROTOCOL_PARSER_H
 #define AFINA_PROTOCOL_PARSER_H
 
 #include <memory>
