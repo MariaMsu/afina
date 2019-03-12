@@ -1,5 +1,9 @@
 #include <utility>
 
+#include <utility>
+
+#include <utility>
+
 #include "SimpleLRU.h"
 
 namespace Afina {
@@ -7,17 +11,19 @@ namespace Backend {
 
 // See MapBasedGlobalLockImpl.h
 bool SimpleLRU::Put(const std::string &key, const std::string &value) {
+    auto iterator = _lru_index.find(key);
     //there is object with the key
-    if (_lru_index.find(key) != _lru_index.end())
-        return Set(key, value);
+    if (iterator != _lru_index.end())
+        return change_value(iterator, value);
 
     return insert_new_node(key, value);
 }
 
 // See MapBasedGlobalLockImpl.h
 bool SimpleLRU::PutIfAbsent(const std::string &key, const std::string &value) {
+    auto iterator = _lru_index.find(key);
     //there is object with the key
-    if (_lru_index.find(key) != _lru_index.end())
+    if (iterator != _lru_index.end())
         return false;
 
     return insert_new_node(key, value);
@@ -26,21 +32,13 @@ bool SimpleLRU::PutIfAbsent(const std::string &key, const std::string &value) {
 
 // See MapBasedGlobalLockImpl.h
 bool SimpleLRU::Set(const std::string &key, const std::string &value) {
+    auto iterator = _lru_index.find(key);
+
     //there is no object with the key
-    if (_lru_index.find(key) == _lru_index.end())
+    if (iterator == _lru_index.end())
         return false;
 
-    //memory overruns
-    if (key.size()
-        + value.size()
-        + _current_size
-        - _lru_index.at(key).get().value.size()
-        > _max_size)
-        return false;
-    _lru_index.at(key) = *create_new_node(key, value);
-
-    move_to_tail(key);
-    return true;
+    return change_value(iterator, value);
 }
 
 // See MapBasedGlobalLockImpl.h
@@ -60,14 +58,15 @@ bool SimpleLRU::Delete(const std::string &key) {
 
 // See MapBasedGlobalLockImpl.h
 bool SimpleLRU::Get(const std::string &key, std::string &value) {
+    auto iterator = _lru_index.find(key);
+
     //there is no object with the key
-    if (_lru_index.find(key) == _lru_index.end()) {
-        value = "";
+    if (iterator == _lru_index.end()) {
         return false;
     }
 
-    value = _lru_index.at(key).get().value;
-    move_to_tail(key);
+    value = (*iterator).second.get().value;
+    move_to_tail(iterator);
     return true;
 }
 
@@ -83,51 +82,66 @@ bool SimpleLRU::delete_oldest_node() {
     return true;
 }
 
-SimpleLRU::lru_node *SimpleLRU::create_new_node(std::string key, std::string value) {
-    auto *new_node = new lru_node;
-    new_node->key = std::move(key);
-    new_node->value = std::move(value);
-    new_node->prev = _lru_tail->prev;
+SimpleLRU::lru_node &SimpleLRU::create_new_node(std::string key, std::string value) {
+    lru_node *new_node = new lru_node{std::move(key),
+                                      std::move(value),
+                                      _lru_tail->prev,
+                                      nullptr};
     new_node->next = std::unique_ptr<lru_node>(new_node);
 
     swap(_lru_tail->prev->next, new_node->next);
 
     _lru_tail->prev = new_node;
 
-    return new_node;
+    return *new_node;
 }
 
-void SimpleLRU::move_to_tail(const std::string &key) {
-    auto mov_node = _lru_index.find(key);
-
-    //there is no object with the key
-    if (mov_node == _lru_index.end()) {
-        return;
-    }
-
-    lru_node *current_node = &(*mov_node).second.get();
+void SimpleLRU::move_to_tail(
+        std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>>::iterator iterator) {
+    lru_node &current_node = (*iterator).second.get();
 
     //current node is already last
-    if (_lru_tail == current_node)
+    if (_lru_tail->key == current_node.key)
         return;
 
-    current_node->next->prev = current_node->prev;
-    swap(current_node->prev->next, current_node->next);
-    current_node->prev = _lru_tail->prev;
-    swap(current_node->next, _lru_tail->prev->next);
-    _lru_tail->prev = current_node;
+    current_node.next->prev = current_node.prev;
+    swap(current_node.prev->next, current_node.next);
+    current_node.prev = _lru_tail->prev;
+    swap(current_node.next, _lru_tail->prev->next);
+    _lru_tail->prev = &current_node;
 }
 
+//std::map<std::reference_wrapper<std::string>, std::reference_wrapper<lru_node>>::iterator iterator,
 bool SimpleLRU::insert_new_node(const std::string &key, const std::string &value) {
+
     if (key.size() + value.size() > _max_size)
         return false;
 
     while (key.size() + value.size() + _current_size > _max_size)
         delete_oldest_node();
 
-    lru_node *new_node = create_new_node(key, value);
+    lru_node &new_node = create_new_node(key, value);
     _current_size += key.size() + value.size();
-    return _lru_index.insert({new_node->key, *new_node}).second;
+    return _lru_index.insert({new_node.key, new_node}).second;
+}
+
+bool SimpleLRU::change_value(
+        std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>>::iterator iterator,
+        const std::string &value) {
+
+    lru_node &current_node = (*iterator).second.get();
+
+    //memory overruns
+    if (current_node.key.size() - current_node.value.size() + value.size() > _max_size)
+        return false;
+
+    while (current_node.key.size() - current_node.value.size() + value.size() + _current_size > _max_size)
+        delete_oldest_node();
+
+    current_node.value = value;
+
+    move_to_tail(iterator);
+    return true;
 }
 } // namespace Backend
 } // namespace Afina

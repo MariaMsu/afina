@@ -60,14 +60,27 @@ public:
     bool Get(const std::string &key, std::string &value) override;
 
 private:
+
     // LRU cache node
     using lru_node = struct lru_node {
-        std::string key;
+        const std::string key;
         std::string value;
         lru_node *prev;
         std::unique_ptr<lru_node> next;
 
     };
+
+    bool delete_oldest_node();
+
+    lru_node &create_new_node(std::string key, std::string value);
+
+    void move_to_tail(std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>>::iterator iterator);
+
+    bool insert_new_node(const std::string &key, const std::string &value);
+
+    bool change_value(std::map<std::reference_wrapper<const std::string>, std::reference_wrapper<lru_node>>::iterator iterator,
+                 const std::string &value);
+
 
     // Maximum number of bytes could be stored in this cache.
     // i.e all (keys+values) must be less the _max_size
@@ -90,13 +103,6 @@ private:
             std::reference_wrapper<lru_node>,
             std::less<std::string>> _lru_index;
 
-    bool delete_oldest_node();
-
-    lru_node *create_new_node(std::string key, std::string value);
-
-    void move_to_tail(const std::string &key);
-
-    bool insert_new_node(const std::string &key, const std::string &value);
 };
 
 } // namespace Backend

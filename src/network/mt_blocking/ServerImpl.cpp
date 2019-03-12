@@ -20,8 +20,13 @@
 #include <afina/Storage.h>
 #include <afina/execute/Command.h>
 #include <afina/logging/Service.h>
+#include <set>
 
 #include "protocol/Parser.h"
+
+std::mutex set_is_blocked;
+std::set<int> client_deskriptors;
+
 
 namespace Afina {
 namespace Network {
@@ -41,7 +46,7 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
     sigset_t sig_mask;
     sigemptyset(&sig_mask);
     sigaddset(&sig_mask, SIGPIPE);
-    if (pthread_sigmask(SIG_BLOCK, &sig_mask, NULL) != 0) {
+    if (pthread_sigmask(SIG_BLOCK, &sig_mask, nullptr) != 0) {
         throw std::runtime_error("Unable to mask SIGPIPE");
     }
 
@@ -80,9 +85,6 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 void ServerImpl::Stop() {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
-    std::unique_lock<std::mutex> lk(one_thread_stopped);
-    std::cerr << "Waiting... \n";
-    check_alive_workers_number.wait(lk, [this] { return this->workers == 0; });
 }
 
 // See Server.h
@@ -90,6 +92,12 @@ void ServerImpl::Join() {
     assert(_thread.joinable());
     _thread.join();
     close(_server_socket);
+
+    for (int descriptor : client_deskriptors)
+        shutdown(descriptor, SHUT_RD);
+
+    std::unique_lock<std::mutex> lk(one_thread_stopped);
+    alive_workers_number.wait(lk, [this] { return this->workers == 0; });
 }
 
 // See Server.h
@@ -129,15 +137,25 @@ void ServerImpl::OnRun() {
             setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
         }
 
+//        ведь запускалка потоков - однопоточная?
+//        std::mutex mt;
+//        {
+//            std::lock_guard<std::mutex> lg(mt);
         if (workers < max_workers) {
             ++workers;
             std::thread(&ServerImpl::user_handler, this, client_socket).detach();
+
+            {
+                std::lock_guard<std::mutex> lg1(set_is_blocked);
+                client_deskriptors.insert(client_socket);
+            }
         }
     }
 
     // Cleanup on exit...
     _logger->warn("Network stopped");
 }
+
 
 void ServerImpl::user_handler(int client_socket) {
 
@@ -231,8 +249,14 @@ void ServerImpl::user_handler(int client_socket) {
     // We are done with this connection
     close(client_socket);
 
+    {
+        std::lock_guard<std::mutex> lg1(set_is_blocked);
+        client_deskriptors.insert(client_socket);
+    }
+
     --workers;
-    check_alive_workers_number.notify_one();
+    if (workers == 0)
+        alive_workers_number.notify_one();
 }
 
 } // namespace MTblocking

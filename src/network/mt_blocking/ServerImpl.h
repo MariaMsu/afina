@@ -62,7 +62,7 @@ private:
     //max number of workers
     const int max_workers = 5;
 
-    std::condition_variable check_alive_workers_number;
+    std::condition_variable alive_workers_number;
     std::mutex one_thread_stopped;
 
     void user_handler(int client_socket);
