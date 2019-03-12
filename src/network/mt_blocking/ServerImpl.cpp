@@ -251,7 +251,7 @@ void ServerImpl::user_handler(int client_socket) {
 
     {
         std::lock_guard<std::mutex> lg1(set_is_blocked);
-        client_deskriptors.insert(client_socket);
+        client_deskriptors.erase(client_socket);
     }
 
     --workers;
