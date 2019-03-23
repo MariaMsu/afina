@@ -51,6 +51,7 @@ bool SimpleLRU::Delete(const std::string &key) {
 
     _lru_index.erase(key);
 
+    (*del_node).second.get().next->prev = (*del_node).second.get().prev;
     swap((*del_node).second.get().prev->next, (*del_node).second.get().next);
     (*del_node).second.get().next = nullptr;
     return true;
