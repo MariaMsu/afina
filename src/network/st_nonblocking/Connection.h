@@ -1,3 +1,5 @@
+#include <utility>
+
 #ifndef AFINA_NETWORK_ST_NONBLOCKING_CONN
 #define AFINA_NETWORK_ST_NONBLOCKING_CONNECTION_H
 
@@ -15,7 +17,10 @@ namespace STnonblock {
 
 class Connection {
 public:
-    Connection(int s, std::shared_ptr<Afina::Storage> ps) : _socket(s), pStorage(ps) {
+    Connection(int s, std::shared_ptr<Afina::Storage> ps, std::shared_ptr<spdlog::logger> pl) :
+            _socket(s),
+            pStorage(std::move(ps)),
+            _logger(std::move(pl)) {
         std::memset(&_event, 0, sizeof(struct epoll_event));
         _event.data.ptr = this;
     }
@@ -26,8 +31,11 @@ public:
 
 protected:
     void OnError();
+
     void OnClose();
+
     void DoRead();
+
     void DoWrite();
 
 private:

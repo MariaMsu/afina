@@ -81,6 +81,9 @@ void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
 void ServerImpl::Stop() {
     running.store(false);
     shutdown(_server_socket, SHUT_RDWR);
+
+    for (int descriptor : client_descriptors)
+        shutdown(descriptor, SHUT_RD);
 }
 
 // See Server.h
@@ -89,16 +92,8 @@ void ServerImpl::Join() {
     _thread.join();
     close(_server_socket);
 
-    for (int descriptor : client_descriptors)
-        shutdown(descriptor, SHUT_RD);
-
     std::unique_lock<std::mutex> lk(one_thread_stopped);
     alive_workers_number.wait(lk, [this] { return this->workers == 0; });
-
-    for (int descriptor : client_descriptors)
-        close(descriptor);
-
-    client_descriptors.clear();
 }
 
 // See Server.h

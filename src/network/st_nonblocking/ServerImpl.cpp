@@ -218,7 +218,7 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
 
         // todo ASK cppreference.com: Return value non-null pointer
         // Register the new FD to be monitored by epoll.
-        Connection *pc = new Connection(infd, pStorage);
+        Connection *pc = new Connection(infd, pStorage, _logger);
         client_connections.insert(pc);
         if (pc == nullptr) {
             throw std::runtime_error("Failed to allocate connection");

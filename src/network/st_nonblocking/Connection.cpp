@@ -11,7 +11,7 @@ namespace STnonblock {
 
 // See Connection.h
 void Connection::Start() {
-    std::cout << "Start" << std::endl;
+    _logger->debug("Connection on {} socket started", _socket);
     _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
     _event.data.fd = _socket;
     _event.data.ptr = this;
@@ -19,19 +19,19 @@ void Connection::Start() {
 
 // See Connection.h
 void Connection::OnError() {
-    std::cout << "OnError" << std::endl;
+    _logger->warn("Connection on {} socket has error", _socket);
     is_alive = false;
 }
 
 // See Connection.h
 void Connection::OnClose() {
-    std::cout << "OnClose" << std::endl;
+    _logger->debug("Connection on {} socket closed", _socket);
     is_alive = false;
 }
 
 // See Connection.h
 void Connection::DoRead() {
-    std::cout << "DoRead" << std::endl;
+    _logger->debug("Do read on {} socket", _socket);
     try {
         int got_bytes = -1;
         while ((got_bytes = read(_socket, client_buffer + already_read_bytes,
@@ -113,7 +113,7 @@ void Connection::DoRead() {
 
 // See Connection.h
 void Connection::DoWrite() {
-    std::cout << "DoWrite" << std::endl;
+    _logger->debug("Do write on {} socket", _socket);
 
     int count;
     ioctl(_socket, FIONREAD, &count);
