@@ -39,17 +39,18 @@ bool SimpleLRU::Set(const std::string &key, const std::string &value) {
 
 // See MapBasedGlobalLockImpl.h
 bool SimpleLRU::Delete(const std::string &key) {
-    auto del_node = _lru_index.find(key);
-
+    auto del_iter = _lru_index.find(key);
     //there is no object with the key
-    if (del_node == _lru_index.end())
+    if (del_iter == _lru_index.end())
         return false;
 
-    _lru_index.erase(key);
+    lru_node &node = del_iter->second.get();
+    _lru_index.erase(del_iter);
+    _current_size -= (node.key.size() + node.value.size());
 
-    (*del_node).second.get().next->prev = (*del_node).second.get().prev;
-    swap((*del_node).second.get().prev->next, (*del_node).second.get().next);
-    (*del_node).second.get().next = nullptr;
+    node.next->prev = node.prev;
+    node.prev->next.swap(node.next);
+    node.next.reset();
     return true;
 }
 

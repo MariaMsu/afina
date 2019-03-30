@@ -112,6 +112,5 @@ TEST(StorageTest, MaxTest) {
 TEST(StorageTest, Delete){
     SimpleLRU storage;
     storage.Put("k1", "aaa");
-    storage.Put("k2", "bbb");
     storage.Delete("k1");
 }
