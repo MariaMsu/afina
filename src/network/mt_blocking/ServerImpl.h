@@ -6,6 +6,7 @@
 
 #include <afina/network/Server.h>
 #include <condition_variable>
+#include <set>
 
 
 namespace spdlog {
@@ -64,6 +65,9 @@ private:
 
     std::condition_variable alive_workers_number;
     std::mutex one_thread_stopped;
+
+    std::mutex set_is_blocked;
+    std::set<int> client_descriptors;
 
     void user_handler(int client_socket);
 };

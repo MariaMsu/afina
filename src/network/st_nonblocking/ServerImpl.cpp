@@ -21,7 +21,6 @@
 #include <afina/Storage.h>
 #include <afina/logging/Service.h>
 
-#include "Connection.h"
 #include "Utils.h"
 
 namespace Afina {
@@ -91,12 +90,22 @@ void ServerImpl::Stop() {
     if (eventfd_write(_event_fd, 1)) {
         throw std::runtime_error("Failed to wakeup workers");
     }
+    for (auto client : client_connections) {
+        shutdown(client->_socket, SHUT_RD);
+    }
 }
 
 // See Server.h
 void ServerImpl::Join() {
     // Wait for work to be complete
     _work_thread.join();
+
+    for (auto client : client_connections) {
+        close(client->_socket);
+        delete client;
+    }
+
+    client_connections.clear();
 }
 
 // See ServerImpl.h
@@ -163,6 +172,7 @@ void ServerImpl::OnRun() {
                 }
 
                 close(pc->_socket);
+                client_connections.erase(pc);
                 pc->OnClose();
 
                 delete pc;
@@ -208,7 +218,8 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
 
         // todo ASK cppreference.com: Return value non-null pointer
         // Register the new FD to be monitored by epoll.
-        Connection *pc = new Connection(infd);
+        Connection *pc = new Connection(infd, pStorage);
+        client_connections.insert(pc);
         if (pc == nullptr) {
             throw std::runtime_error("Failed to allocate connection");
         }
@@ -218,6 +229,7 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
         if (pc->isAlive()) {
             if (epoll_ctl(epoll_descr, EPOLL_CTL_ADD, pc->_socket, &pc->_event)) {
                 pc->OnError();
+                client_connections.erase(pc);
                 delete pc;
             }
         }

@@ -20,12 +20,8 @@
 #include <afina/Storage.h>
 #include <afina/execute/Command.h>
 #include <afina/logging/Service.h>
-#include <set>
 
 #include "protocol/Parser.h"
-
-std::mutex set_is_blocked;
-std::set<int> client_deskriptors;
 
 
 namespace Afina {
@@ -93,11 +89,16 @@ void ServerImpl::Join() {
     _thread.join();
     close(_server_socket);
 
-    for (int descriptor : client_deskriptors)
+    for (int descriptor : client_descriptors)
         shutdown(descriptor, SHUT_RD);
 
     std::unique_lock<std::mutex> lk(one_thread_stopped);
     alive_workers_number.wait(lk, [this] { return this->workers == 0; });
+
+    for (int descriptor : client_descriptors)
+        close(descriptor);
+
+    client_descriptors.clear();
 }
 
 // See Server.h
@@ -147,7 +148,7 @@ void ServerImpl::OnRun() {
 
             {
                 std::lock_guard<std::mutex> lg1(set_is_blocked);
-                client_deskriptors.insert(client_socket);
+                client_descriptors.insert(client_socket);
             }
         }
     }
@@ -251,7 +252,7 @@ void ServerImpl::user_handler(int client_socket) {
 
     {
         std::lock_guard<std::mutex> lg1(set_is_blocked);
-        client_deskriptors.erase(client_socket);
+        client_descriptors.erase(client_socket);
     }
 
     --workers;
