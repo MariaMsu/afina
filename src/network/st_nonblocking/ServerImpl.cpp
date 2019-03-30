@@ -37,7 +37,7 @@ ServerImpl::~ServerImpl() {}
 // See Server.h
 void ServerImpl::Start(uint16_t port, uint32_t n_acceptors, uint32_t n_workers) {
     _logger = pLogging->select("network");
-    _logger->info("Start network service");
+    _logger->info("Start st_nonblock network service");
 
     sigset_t sig_mask;
     sigemptyset(&sig_mask);
@@ -64,7 +64,7 @@ void ServerImpl::Start(uint16_t port, uint32_t n_acceptors, uint32_t n_workers) 
         throw std::runtime_error("Socket setsockopt() failed: " + std::string(strerror(errno)));
     }
 
-    if (bind(_server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
+    if (bind(_server_socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1) {
         close(_server_socket);
         throw std::runtime_error("Socket bind() failed: " + std::string(strerror(errno)));
     }
@@ -125,7 +125,7 @@ void ServerImpl::OnRun() {
     std::array<struct epoll_event, 64> mod_list;
     while (run) {
         int nmod = epoll_wait(epoll_descr, &mod_list[0], mod_list.size(), -1);
-        _logger->debug("Acceptor wokeup: {} events", nmod);
+        _logger->debug("Acceptor wakeup: {} events", nmod);
 
         for (int i = 0; i < nmod; i++) {
             struct epoll_event &current_event = mod_list[i];
@@ -201,11 +201,12 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
         // Print host and service info.
         char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
         int retval =
-            getnameinfo(&in_addr, in_len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV);
+                getnameinfo(&in_addr, in_len, hbuf, sizeof hbuf, sbuf, sizeof sbuf, NI_NUMERICHOST | NI_NUMERICSERV);
         if (retval == 0) {
             _logger->info("Accepted connection on descriptor {} (host={}, port={})\n", infd, hbuf, sbuf);
         }
 
+        // todo ASK cppreference.com: Return value non-null pointer
         // Register the new FD to be monitored by epoll.
         Connection *pc = new Connection(infd);
         if (pc == nullptr) {

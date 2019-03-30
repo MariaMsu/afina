@@ -108,3 +108,10 @@ TEST(StorageTest, MaxTest) {
         EXPECT_FALSE(storage.Get(key, res));
     }
 }
+
+TEST(StorageTest, Delete){
+    SimpleLRU storage;
+    storage.Put("k1", "aaa");
+    storage.Put("k2", "bbb");
+    storage.Delete("k1");
+}

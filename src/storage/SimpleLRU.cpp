@@ -1,9 +1,5 @@
 #include <utility>
 
-#include <utility>
-
-#include <utility>
-
 #include "SimpleLRU.h"
 
 namespace Afina {
@@ -123,7 +119,9 @@ bool SimpleLRU::insert_new_node(const std::string &key, const std::string &value
 
     lru_node &new_node = create_new_node(key, value);
     _current_size += key.size() + value.size();
-    return _lru_index.insert({new_node.key, new_node}).second;
+
+    return _lru_index.insert(std::make_pair(std::reference_wrapper<const std::string>(new_node.key),
+                                            std::reference_wrapper<lru_node>(new_node))).second;
 }
 
 bool SimpleLRU::change_value(
@@ -144,5 +142,6 @@ bool SimpleLRU::change_value(
     move_to_tail(iterator);
     return true;
 }
+
 } // namespace Backend
 } // namespace Afina
