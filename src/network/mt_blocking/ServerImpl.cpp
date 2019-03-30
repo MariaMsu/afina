@@ -139,9 +139,8 @@ void ServerImpl::OnRun() {
         }
 
 //        ведь запускалка потоков - однопоточная?
-//        std::mutex mt;
 //        {
-//            std::lock_guard<std::mutex> lg(mt);
+//            std::lock_guard<std::mutex> lg(block_worker_creation);
         if (workers < max_workers) {
             ++workers;
             std::thread(&ServerImpl::user_handler, this, client_socket).detach();
@@ -151,6 +150,7 @@ void ServerImpl::OnRun() {
                 client_descriptors.insert(client_socket);
             }
         }
+//        }
     }
 
     // Cleanup on exit...

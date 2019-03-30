@@ -70,6 +70,9 @@ private:
     std::set<int> client_descriptors;
 
     void user_handler(int client_socket);
+
+//    ведь запускалка потоков - однопоточная?
+//    std::mutex block_worker_creation;
 };
 
 } // namespace MTblocking
