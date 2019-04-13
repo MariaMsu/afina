@@ -5,6 +5,8 @@
 #include <vector>
 
 #include <afina/network/Server.h>
+#include <set>
+#include "Connection.h"
 
 namespace spdlog {
 class logger;
@@ -12,9 +14,9 @@ class logger;
 
 namespace Afina {
 namespace Network {
-namespace MTnonblock {
+namespace STnonblock {
 
-// Forward declaration, see Worker.h
+// Forward declaration, see Worker.hseeing
 class Worker;
 
 /**
@@ -37,7 +39,7 @@ public:
 
 protected:
     void OnRun();
-    void OnNewConnection();
+    void OnNewConnection(int);
 
 private:
     // logger to use
@@ -51,21 +53,16 @@ private:
     // Socket to accept new connection on, shared between acceptors
     int _server_socket;
 
-    // Threads that accepts new connections, each has private epoll instance
-    // but share global server socket
-    std::vector<std::thread> _acceptors;
-
-    // EPOLL instance shared between workers
-    int _data_epoll_fd;
-
-    // Curstom event "device" used to wakeup workers
+    // Custom event "device" used to wakeup workers
     int _event_fd;
 
-    // threads serving read/write requests
-    std::vector<Worker> _workers;
+    // IO thread
+    std::thread _work_thread;
+
+    std::set<Connection *> client_connections;
 };
 
-} // namespace MTnonblock
+} // namespace STnonblock
 } // namespace Network
 } // namespace Afina
 

@@ -45,7 +45,6 @@ namespace Afina {
          */
         virtual bool PutIfAbsent(const std::string &key, const std::string &value) = 0;
 
-<<<<<<< HEAD
         /**
          * Updates existing association between given key/value pair
          * If requested key doesn't present in storage method returns false and
@@ -88,21 +87,6 @@ namespace Afina {
          */
         virtual bool Get(const std::string &key, std::string &value) = 0;
     };
-=======
-    /**
-     * Retrive key for the given value
-     * If there is an association for the given key then method copies value
-     * into given output parameter (possibly extends its size) and return true
-     *
-     * In case if given key not found method returns false and doesn't perform
-     * any changes on the output parameter
-     *
-     * @param key to retrive1 value for
-     * @param value output parameter to copy value to
-     */
-    virtual bool Get(const std::string &key, std::string &value) = 0;
-};
->>>>>>> upstream/master
 
 } // namespace Afina
 
