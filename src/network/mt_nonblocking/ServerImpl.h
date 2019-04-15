@@ -14,7 +14,7 @@ class logger;
 
 namespace Afina {
 namespace Network {
-namespace STnonblock {
+namespace MTnonblock {
 
 // Forward declaration, see Worker.hseeing
 class Worker;
@@ -62,7 +62,7 @@ private:
     std::set<Connection *> client_connections;
 };
 
-} // namespace STnonblock
+} // namespace MTnonblock
 } // namespace Network
 } // namespace Afina
 

@@ -7,7 +7,7 @@
 
 namespace Afina {
 namespace Network {
-namespace STnonblock {
+namespace MTnonblock {
 
 // See Connection.h
 void Connection::Start() {
@@ -150,6 +150,6 @@ void Connection::DoWrite() {
     }
 }
 
-} // namespace STnonblock
+} // namespace MTnonblock
 } // namespace Network
 } // namespace Afina

@@ -25,7 +25,7 @@
 
 namespace Afina {
 namespace Network {
-namespace STnonblock {
+namespace MTnonblock {
 
 // See Server.h
 ServerImpl::ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl) : Server(ps, pl) {}
@@ -236,6 +236,6 @@ void ServerImpl::OnNewConnection(int epoll_descr) {
     }
 }
 
-} // namespace STnonblock
+} // namespace MTnonblock
 } // namespace Network
 } // namespace Afina

@@ -55,7 +55,6 @@ bool SimpleLRU::Delete(const std::string &key) {
 }
 
 // See MapBasedGlobalLockImpl.h
-<<<<<<< HEAD
 bool SimpleLRU::Get(const std::string &key, std::string &value) {
     auto iterator = _lru_index.find(key);
 
@@ -144,9 +143,6 @@ bool SimpleLRU::change_value(
     move_to_tail(iterator);
     return true;
 }
-=======
-bool SimpleLRU::Get(const std::string &key, std::string &value) { return false; }
->>>>>>> upstream/master
 
 } // namespace Backend
 } // namespace Afina

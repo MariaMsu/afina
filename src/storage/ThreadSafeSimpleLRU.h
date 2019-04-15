@@ -47,11 +47,7 @@ public:
 
     // see SimpleLRU.h
     bool Get(const std::string &key, std::string &value) override {
-<<<<<<< HEAD
         std::lock_guard<std::mutex> lg(exist_user);
-=======
-        // TODO: sinchronization
->>>>>>> upstream/master
         return SimpleLRU::Get(key, value);
     }
 

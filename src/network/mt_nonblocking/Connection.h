@@ -13,7 +13,7 @@
 
 namespace Afina {
 namespace Network {
-namespace STnonblock {
+namespace MTnonblock {
 
 class Connection {
 public:
@@ -41,6 +41,7 @@ protected:
 private:
     std::mutex _mutex;
 
+    friend class Worker;
     friend class ServerImpl;
 
     int _socket;
@@ -61,7 +62,7 @@ private:
 
 };
 
-} // namespace STnonblock
+} // namespace MTnonblock
 } // namespace Network
 } // namespace Afina
 
