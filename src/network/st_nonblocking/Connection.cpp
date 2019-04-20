@@ -125,18 +125,21 @@ void Connection::DoWrite() {
         iovecs[i].iov_len = answer_buf[i].size();
         iovecs[i].iov_base = &(answer_buf[i][0]);
     }
-    iovecs[0].iov_base = static_cast<char*>(iovecs[0].iov_base) + cur_position;
+    iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + cur_position;
 
     int written;
     if ((written = writev(_socket, iovecs, answer_buf.size())) <= 0) {
-        _logger->error("Failed to send response");
+        is_alive = false;
+        throw std::runtime_error("Failed to send response");
     }
+
     cur_position += written;
 
     int i = 0;
-
-    while((cur_position - iovecs[i].iov_len) >= 0)
+    while ((i < answer_buf.size()) && ((cur_position - iovecs[i].iov_len) >= 0)) {
         i++;
+        cur_position -= iovecs[i].iov_len;
+    }
 
     answer_buf.erase(answer_buf.begin(), answer_buf.begin() + i);
     if (answer_buf.empty()) {
