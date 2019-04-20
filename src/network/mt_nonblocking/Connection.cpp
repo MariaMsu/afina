@@ -20,13 +20,13 @@ void Connection::Start() {
 // See Connection.h
 void Connection::OnError() {
     _logger->warn("Connection on {} socket has error", _socket);
-    is_alive = false;
+    is_alive.store(false);
 }
 
 // See Connection.h
 void Connection::OnClose() {
     _logger->debug("Connection on {} socket closed", _socket);
-    is_alive = false;
+    is_alive.store(false);
 }
 
 // See Connection.h
@@ -103,7 +103,7 @@ void Connection::DoRead() {
             } // while (read_bytes)
         }
 
-        is_alive = false;
+        is_alive.store(false);
         if (got_bytes == 0) {
             _logger->debug("Connection closed");
         } else {
@@ -137,7 +137,7 @@ void Connection::DoWrite() {
     }
     try {
         if (send(_socket, answer.c_str(), answer.size(), 0) <= 0) {
-            is_alive = false;
+            is_alive.store(false);
             throw std::runtime_error("Failed to send response");
         }
     } catch (std::runtime_error &ex) {

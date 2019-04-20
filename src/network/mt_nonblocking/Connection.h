@@ -23,6 +23,7 @@ public:
             _logger(std::move(pl)) {
         std::memset(&_event, 0, sizeof(struct epoll_event));
         _event.data.ptr = this;
+        is_alive.store(true);
     }
 
     inline bool isAlive() const { return is_alive; }
@@ -47,7 +48,7 @@ private:
     int _socket;
     struct epoll_event _event;
 
-    bool is_alive = true;
+    std::atomic<bool>is_alive;
     std::shared_ptr<spdlog::logger> _logger;
 
     int already_read_bytes = 0;
@@ -67,33 +68,3 @@ private:
 } // namespace Afina
 
 #endif // AFINA_NETWORK_MT_NONBLOCKING_CONNECTION_H
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

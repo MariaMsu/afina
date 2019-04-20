@@ -89,8 +89,12 @@ void Connection::DoRead() {
 
                     // Save response
                     result += "\r\n";
+
+                    bool add_EPOLLOUT = answer_buf.empty();
+
                     answer_buf.push(result);
-                    _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
+                    if (add_EPOLLOUT)
+                        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
 
                     // Prepare for the next command
                     command_to_execute.reset();
@@ -116,7 +120,7 @@ void Connection::DoWrite() {
     _logger->debug("Do write on {} socket", _socket);
 
     int count;
-    ioctl(_socket, FIONREAD, &count);
+    ioctl(_socket, FIONREAD, &count); // размер сетевой карты
 
     std::string answer;
     while (answer.size() + answer_buf.front().size() < count) {
@@ -137,7 +141,7 @@ void Connection::DoWrite() {
         _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
     }
 
-    if(answer_buf.empty())
+    if (answer_buf.empty())
         _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
 }
 
