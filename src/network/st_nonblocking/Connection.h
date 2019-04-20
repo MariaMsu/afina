@@ -55,7 +55,9 @@ private:
     std::unique_ptr<Execute::Command> command_to_execute;
     std::shared_ptr<Afina::Storage> pStorage;
 
-    std::queue<std::string> answer_buf;
+    std::vector<std::string> answer_buf;
+
+    int cur_position = 0;
 
 };
 

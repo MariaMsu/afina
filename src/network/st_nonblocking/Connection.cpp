@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 
 namespace Afina {
 namespace Network {
@@ -92,7 +93,7 @@ void Connection::DoRead() {
 
                     bool add_EPOLLOUT = answer_buf.empty();
 
-                    answer_buf.push(result);
+                    answer_buf.push_back(result);
                     if (add_EPOLLOUT)
                         _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
 
@@ -119,30 +120,56 @@ void Connection::DoRead() {
 void Connection::DoWrite() {
     _logger->debug("Do write on {} socket", _socket);
 
-    int count;
-    ioctl(_socket, FIONREAD, &count); // размер сетевой карты
-
-    std::string answer;
-    while (answer.size() + answer_buf.front().size() < count) {
-        answer = answer_buf.front();
-        answer_buf.pop();
+    struct iovec iovecs[answer_buf.size()];
+    for (int i = 0; i < answer_buf.size(); i++) {
+        iovecs[i].iov_len = answer_buf[i].size();
+        iovecs[i].iov_base = &(answer_buf[i][0]);
     }
+    iovecs[0].iov_base = static_cast<char*>(iovecs[0].iov_base) + cur_position;
 
-    unsigned long tail_position = count - answer.size();
-    answer += answer_buf.front().substr(0, tail_position);
-    answer_buf.front() = answer_buf.front().substr(tail_position);
-
-    try {
-        if (send(_socket, answer.c_str(), answer.size(), 0) <= 0) {
-            is_alive = false;
-            throw std::runtime_error("Failed to send response");
-        }
-    } catch (std::runtime_error &ex) {
-        _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
+    int written;
+    if ((written = writev(_socket, iovecs, answer_buf.size())) <= 0) {
+        _logger->error("Failed to send response");
     }
+    cur_position += written;
 
-    if (answer_buf.empty())
+    int i = 0;
+
+    while((cur_position - iovecs[i].iov_len) >= 0)
+        i++;
+
+    answer_buf.erase(answer_buf.begin(), answer_buf.begin() + i);
+    if (answer_buf.empty()) {
         _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
+    }
+
+
+//    _logger->debug("Do write on {} socket", _socket);
+//
+//    int count;
+//    ioctl(_socket, FIONREAD, &count); // размер сетевой карты
+//
+//    std::string answer;
+//    while (answer.size() + answer_buf.front().size() < count) {
+//        answer = answer_buf.front();
+//        answer_buf.pop();
+//    }
+//
+//    unsigned long tail_position = count - answer.size();
+//    answer += answer_buf.front().substr(0, tail_position);
+//    answer_buf.front() = answer_buf.front().substr(tail_position);
+//
+//    try {
+//        if (send(_socket, answer.c_str(), answer.size(), 0) <= 0) {
+//            is_alive = false;
+//            throw std::runtime_error("Failed to send response");
+//        }
+//    } catch (std::runtime_error &ex) {
+//        _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
+//    }
+//
+//    if (answer_buf.empty())
+//        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
 }
 
 } // namespace STnonblock

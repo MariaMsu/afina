@@ -90,22 +90,12 @@ void ServerImpl::Stop() {
     if (eventfd_write(_event_fd, 1)) {
         throw std::runtime_error("Failed to wakeup workers");
     }
-    for (auto client : client_connections) {
-        shutdown(client->_socket, SHUT_RD);
-    }
 }
 
 // See Server.h
 void ServerImpl::Join() {
     // Wait for work to be complete
     _work_thread.join();
-
-    for (auto client : client_connections) {
-        close(client->_socket);
-        delete client;
-    }
-
-    client_connections.clear();
 }
 
 // See ServerImpl.h
@@ -188,6 +178,12 @@ void ServerImpl::OnRun() {
             }
         }
     }
+    for (auto client : client_connections) {
+        close(client->_socket);
+        delete client;
+    }
+    client_connections.clear();
+
     _logger->warn("Acceptor stopped");
 }
 
