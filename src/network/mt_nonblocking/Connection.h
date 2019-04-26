@@ -4,7 +4,6 @@
 #define AFINA_NETWORK_MT_NONBLOCKING_CONNECTION_H
 
 #include <cstring>
-#include <queue>
 
 #include <sys/epoll.h>
 #include <spdlog/logger.h>
@@ -59,8 +58,9 @@ private:
     std::unique_ptr<Execute::Command> command_to_execute;
     std::shared_ptr<Afina::Storage> pStorage;
 
-    std::queue<std::string> answer_buf;
+    std::vector<std::string> answer_buf;
 
+    int cur_position = 0;
 };
 
 } // namespace MTnonblock

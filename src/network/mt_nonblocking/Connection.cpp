@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 
 namespace Afina {
 namespace Network {
@@ -11,6 +12,7 @@ namespace MTnonblock {
 
 // See Connection.h
 void Connection::Start() {
+    std::lock_guard<std::mutex> lock(_mutex);
     _logger->debug("Connection on {} socket started", _socket);
     _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
     _event.data.fd = _socket;
@@ -31,8 +33,10 @@ void Connection::OnClose() {
 
 // See Connection.h
 void Connection::DoRead() {
+    std::lock_guard<std::mutex> lock(_mutex);
     _logger->debug("Do read on {} socket", _socket);
     try {
+
         int got_bytes = -1;
         while ((got_bytes = read(_socket, client_buffer + already_read_bytes,
                                  sizeof(client_buffer) - already_read_bytes)) > 0) {
@@ -89,11 +93,11 @@ void Connection::DoRead() {
 
                     // Save response
                     result += "\r\n";
-                    {
-                        std::lock_guard<std::mutex> lock(_mutex);
-                        answer_buf.push(result);
-                        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
-                    }
+
+                    std::lock_guard<std::mutex> lock(_mutex);
+                    answer_buf.push_back(result);
+                    _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
+
 
                     // Prepare for the next command
                     command_to_execute.reset();
@@ -116,38 +120,35 @@ void Connection::DoRead() {
 
 // See Connection.h
 void Connection::DoWrite() {
+    std::lock_guard<std::mutex> lock(_mutex);
     _logger->debug("Do write on {} socket", _socket);
 
-    int count;
-    ioctl(_socket, FIONREAD, &count);
+    struct iovec iovecs[answer_buf.size()];
+    for (int i = 0; i < answer_buf.size(); i++) {
+        iovecs[i].iov_len = answer_buf[i].size();
+        iovecs[i].iov_base = &(answer_buf[i][0]);
+    }
+    iovecs[0].iov_base = static_cast<char *>(iovecs[0].iov_base) + cur_position;
 
-    std::string answer;
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-        while (answer.size() + answer_buf.front().size() < count) {
-            answer = answer_buf.front();
-            answer_buf.pop();
-        }
+    int written;
+    if ((written = writev(_socket, iovecs, answer_buf.size())) <= 0) {
+        is_alive = false;
+        throw std::runtime_error("Failed to send response");
     }
-    unsigned long tail_position = count - answer.size();
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-        answer += answer_buf.front().substr(0, tail_position);
-        answer_buf.front() = answer_buf.front().substr(tail_position);
+
+    cur_position += written;
+
+    int i = 0;
+    while ((i < answer_buf.size()) && ((cur_position - iovecs[i].iov_len) >= 0)) {
+        i++;
+        cur_position -= iovecs[i].iov_len;
     }
-    try {
-        if (send(_socket, answer.c_str(), answer.size(), 0) <= 0) {
-            is_alive.store(false);
-            throw std::runtime_error("Failed to send response");
-        }
-    } catch (std::runtime_error &ex) {
-        _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
+
+    answer_buf.erase(answer_buf.begin(), answer_buf.begin() + i);
+    if (answer_buf.empty()) {
+        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
     }
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-        if (answer_buf.empty())
-            _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
-    }
+
 }
 
 } // namespace MTnonblock
