@@ -34,13 +34,13 @@ private:
         // Saved coroutine context (registers)
         jmp_buf Environment;
 
-        // To include routine in the different lists, such as "alive", "blocked", e.t.c
+        // To include coroutine in the different lists, such as "alive", "blocked", e.t.c
         struct context *prev = nullptr;
         struct context *next = nullptr;
     } context;
 
     /**
-     * Where coroutines stack begins
+     * Where routines stack begins
      */
     char *StackBottom;
 
@@ -73,7 +73,7 @@ protected:
     /**
      * Suspend current coroutine execution and execute given context
      */
-    // void Enter(context& ctx);
+     void Enter(context& ctx);
 
 public:
     Engine() : StackBottom(0), cur_routine(nullptr), alive(nullptr) {}
@@ -141,7 +141,6 @@ public:
             return nullptr;
         }
 
-        // New coroutine context that carries around all information enough to call function
         context *pc = new context();
 
         // Store current state right here, i.e just before enter new coroutine, later, once it gets scheduled
