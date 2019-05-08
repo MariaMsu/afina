@@ -145,34 +145,6 @@ void Connection::DoWrite() {
     if (answer_buf.empty()) {
         _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
     }
-
-
-//    _logger->debug("Do write on {} socket", _socket);
-//
-//    int count;
-//    ioctl(_socket, FIONREAD, &count); // размер сетевой карты
-//
-//    std::string answer;
-//    while (answer.size() + answer_buf.front().size() < count) {
-//        answer = answer_buf.front();
-//        answer_buf.pop();
-//    }
-//
-//    unsigned long tail_position = count - answer.size();
-//    answer += answer_buf.front().substr(0, tail_position);
-//    answer_buf.front() = answer_buf.front().substr(tail_position);
-//
-//    try {
-//        if (send(_socket, answer.c_str(), answer.size(), 0) <= 0) {
-//            is_alive = false;
-//            throw std::runtime_error("Failed to send response");
-//        }
-//    } catch (std::runtime_error &ex) {
-//        _logger->error("Failed to process connection on descriptor {}: {}", _socket, ex.what());
-//    }
-//
-//    if (answer_buf.empty())
-//        _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; // без записи
 }
 
 } // namespace STnonblock

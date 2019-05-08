@@ -23,6 +23,10 @@ public:
         std::memset(&_event, 0, sizeof(struct epoll_event));
         _event.data.ptr = this;
         is_alive.store(true);
+
+        // check if iterator is random_access
+        static_assert(std::is_same<std::iterator_traits<decltype(answer_buf.begin())>::iterator_category,
+                std::random_access_iterator_tag>::value, "requires random iterator");
     }
 
     inline bool isAlive() const { return is_alive; }
