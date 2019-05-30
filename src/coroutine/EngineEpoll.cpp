@@ -85,7 +85,7 @@ void Engine::Enter(context &ctx) {
     Restore(ctx);
 }
 
-void Engine::Move2alive(context * const &routine){
+void Engine::make_alive(context *const &routine){
     if (routine->prev != nullptr) {
         routine->prev->next = routine->next;
     }
@@ -104,7 +104,7 @@ void Engine::Move2alive(context * const &routine){
     }
 }
 
-void Engine::Move2blocked(context * const &routine){
+void Engine::make_blocked(context *const &routine){
     if (routine->prev != nullptr) {
         routine->prev->next = routine->next;
     }

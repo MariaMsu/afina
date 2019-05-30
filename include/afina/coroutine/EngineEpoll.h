@@ -82,16 +82,16 @@ protected:
      */
     void Enter(context& ctx);
 
-    /**
-     * Move coroutine from one list to another
-     */
-    void Move2alive( context * const &routine);
-    void Move2blocked( context * const &routine);
-
 public:
     Engine() : StackBottom(0), cur_routine(nullptr), alive(nullptr) {}
     Engine(Engine &&) = delete;
     Engine(const Engine &) = delete;
+
+    /**
+    * Move coroutine from one list to another
+    */
+    void make_alive(context *const &routine);
+    void make_blocked(context *const &routine);
 
     /**
      * Gives up current routine execution and let engine to schedule other one. It is not defined when
