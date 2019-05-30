@@ -9,13 +9,13 @@ namespace Coroutine {
 
 // Save stack of the current coroutine in the given context
 void Engine::Store(context &ctx) {
-    char stack_head;
+    char current_addr;
     ctx.Hight = ctx.Low = StackBottom;
-//    для стека, растущего в любую сторону
-    if (&stack_head > StackBottom) {
-        ctx.Hight = &stack_head;
+//  для стека, растущего в любую сторону
+    if (&current_addr > StackBottom) {
+        ctx.Hight = &current_addr;
     } else {
-        ctx.Low = &stack_head;
+        ctx.Low = &current_addr;
     }
 
     char *&buffer = std::get<0>(ctx.Stack);
@@ -32,8 +32,8 @@ void Engine::Store(context &ctx) {
 
 //  Restore stack of the given context and pass control to coroutine
 void Engine::Restore(context &ctx) {
-    char stack_head;
-    if ((ctx.Low <= &stack_head) && (&stack_head <= ctx.Hight)) {
+    char current_addr;
+    if ((ctx.Low <= &current_addr) && (&current_addr <= ctx.Hight)) {
         Restore(ctx);
     }
 
@@ -43,18 +43,23 @@ void Engine::Restore(context &ctx) {
     longjmp(ctx.Environment, 1);
 }
 
+
+// Gives up current routine execution and let engine to schedule other one
 void Engine::yield() {
     context *candidate = alive;
 
+//  берем следующую корутину
     if (candidate && (candidate == cur_routine)) {
         candidate = candidate->next;
     }
 
+//  ставим на выполнение новую корутину всесто старой
     if (candidate) {
         Enter(*candidate);
     }
 }
 
+// Gives up current routine execution and let engine to schedule given
 void Engine::sched(void *routine_) {
     if (cur_routine == routine_) {
         return;
@@ -62,12 +67,12 @@ void Engine::sched(void *routine_) {
 
     if (routine_) {
         Enter(*(static_cast<context *>(routine_)));
-    }
-    else {
+    } else {
         yield();
     }
 }
 
+// Suspend current coroutine execution and execute given context
 void Engine::Enter(context &ctx) {
     if (cur_routine && cur_routine != idle_ctx) {
         if (setjmp(cur_routine->Environment) > 0) {

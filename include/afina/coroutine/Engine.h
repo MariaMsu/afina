@@ -44,7 +44,8 @@ private:
      */
     char *StackBottom;
 
-    /**const int&
+    /**
+     * const int&
      * Current coroutine
      */
     context *cur_routine;
