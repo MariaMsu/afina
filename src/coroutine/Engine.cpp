@@ -48,7 +48,7 @@ void Engine::Restore(context &ctx) {
 void Engine::yield() {
     context *candidate = alive;
 
-//  берем следующую корутину
+//  берем следующую корутину, если она есть
     if (candidate && (candidate == cur_routine)) {
         candidate = candidate->next;
     }

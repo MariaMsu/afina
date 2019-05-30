@@ -94,7 +94,7 @@ void Connection::DoRead() {
                     // Save response
                     result += "\r\n";
 
-                    std::lock_guard<std::mutex> lock(_mutex);
+//                    std::lock_guard<std::mutex> lock(_mutex);
                     answer_buf.push_back(result);
                     _event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR | EPOLLOUT;
 
