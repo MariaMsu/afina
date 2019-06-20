@@ -8,8 +8,6 @@
 #include <queue>
 #include <string>
 #include <thread>
-#include <atomic>
-
 
 namespace spdlog {
 class logger;
@@ -28,14 +26,14 @@ void perform(Executor *executor);
 class Executor {
     enum class State {
         // Threadpool is fully operational, tasks could be added and get executed
-        kRun,
+                kRun,
 
         // Threadpool is on the way to be shutdown, no ned task could be added, but existing will be
         // completed as requested
-        kStopping,
+                kStopping,
 
         // Threadppol is stopped
-        kStopped
+                kStopped
     };
 
 public:
@@ -141,5 +139,6 @@ private:
 
 } // namespace Concurrency
 } // namespace Afina
+
 
 #endif // AFINA_CONCURRENCY_EXECUTOR_H

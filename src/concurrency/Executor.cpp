@@ -1,16 +1,14 @@
-#include <utility>
-
-#include <chrono>
-#include <algorithm>
-#include <iostream>
 #include <afina/concurrency/Executor.h>
+#include <algorithm>
 
 namespace Afina {
 namespace Concurrency {
 
-Executor::Executor(int low_watermark, int hight_watermark, int max_queue_size, int idle_time) : low_watermark(low_watermark), hight_watermark(hight_watermark), max_queue_size(max_queue_size), idle_time(idle_time) {
-    std::unique_lock<std::mutex> lock(mutex);
-}
+Executor::Executor(int low_watermark, int hight_watermark, int max_queue_size, int idle_time) :
+        low_watermark(low_watermark),
+        hight_watermark(hight_watermark),
+        max_queue_size(max_queue_size),
+        idle_time(idle_time) {}
 
 Executor::~Executor() {}
 
@@ -51,8 +49,7 @@ void perform(Executor *executor) {
                     if (executor->threads.size() > executor->low_watermark) {
                         executor->_erase_thread();
                         return;
-                    }
-                    else {
+                    } else {
                         executor->empty_condition.wait(lock);
                     }
                 }
@@ -77,13 +74,12 @@ void perform(Executor *executor) {
 }
 
 void Executor::_erase_thread() {
-    std::thread::id this_id = std::this_thread::get_id();
-    auto iter = std::find_if(threads.begin(), threads.end(), [=](std::thread &t) { return (t.get_id() == this_id); });
+    std::thread::id cur_thread_id = std::this_thread::get_id();
+    auto iter = std::find_if(threads.begin(), threads.end(), [=](std::thread &t) { return (t.get_id() == cur_thread_id); });
     if (iter != threads.end()) {
         iter->detach();
         free_threads--;
         threads.erase(iter);
-//        _logger->debug("i died");
         return;
     }
     throw std::runtime_error("error while erasing thread");
@@ -92,5 +88,3 @@ void Executor::_erase_thread() {
 
 } // namespace Concurrency
 } // namespace Afina
-
-
