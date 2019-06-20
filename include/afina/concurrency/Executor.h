@@ -27,9 +27,6 @@ void perform(Executor *executor);
  */
 class Executor {
     enum class State {
-        // Threadpool is ready to start
-        kReady,
-
         // Threadpool is fully operational, tasks could be added and get executed
         kRun,
 
@@ -46,7 +43,7 @@ public:
     //hight_watermark - максимальное количество потоков в пуле
     //max_queue_size - максимальное число задач в очереди
     //idle_time - количество миллисекунд, которое каждый из поток ждет задач.
-    Executor(std::string name, int low_watermark, int hight_watermark, int max_queue_size, int idle_time);
+    Executor(int low_watermark, int hight_watermark, int max_queue_size, int idle_time);
     ~Executor();
 
     /**
@@ -81,7 +78,6 @@ public:
             // Enqueue new task
             tasks.push_back(exec);
             if (free_threads == 0 && threads.size() < hight_watermark) {
-//                threads.push_back(std::thread(&perform, this));
                 threads.push_back(std::thread(&perform, this));
             }
             empty_condition.notify_one();

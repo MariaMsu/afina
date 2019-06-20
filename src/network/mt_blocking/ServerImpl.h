@@ -7,7 +7,7 @@
 #include <afina/network/Server.h>
 #include <condition_variable>
 #include <set>
-
+#include <afina/concurrency/Executor.h>
 
 namespace spdlog {
 class logger;
@@ -71,8 +71,8 @@ private:
 
     void user_handler(int client_socket);
 
-//    ведь запускалка потоков - однопоточная?
-//    std::mutex block_worker_creation;
+    Afina::Concurrency::Executor _executor;
+
 };
 
 } // namespace MTblocking

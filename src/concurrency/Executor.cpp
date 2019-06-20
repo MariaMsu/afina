@@ -1,16 +1,15 @@
 #include <utility>
 
-#include <afina/concurrency/Executor.h>
 #include <chrono>
 #include <algorithm>
 #include <iostream>
+#include <afina/concurrency/Executor.h>
 
 namespace Afina {
 namespace Concurrency {
 
-Executor::Executor(std::string name, int low_watermark, int hight_watermark, int max_queue_size, int idle_time) : low_watermark(low_watermark), hight_watermark(hight_watermark), max_queue_size(max_queue_size), idle_time(idle_time) {
+Executor::Executor(int low_watermark, int hight_watermark, int max_queue_size, int idle_time) : low_watermark(low_watermark), hight_watermark(hight_watermark), max_queue_size(max_queue_size), idle_time(idle_time) {
     std::unique_lock<std::mutex> lock(mutex);
-    state = State::kReady;
 }
 
 Executor::~Executor() {}
@@ -39,14 +38,14 @@ void Executor::Stop(bool await) {
 }
 
 void perform(Executor *executor) {
-//    executor->_logger->debug("new thread");
+    // new thread
     while (executor->state == Executor::State::kRun) {
         std::function<void()> task;
         {
             std::unique_lock<std::mutex> lock(executor->mutex);
             auto time_until = std::chrono::system_clock::now() + std::chrono::milliseconds(executor->idle_time);
             while (executor->tasks.empty() && executor->state == Executor::State::kRun) {
-//                executor->_logger->debug("waiting");
+                // waiting
                 executor->free_threads++;
                 if (executor->empty_condition.wait_until(lock, time_until) == std::cv_status::timeout) {
                     if (executor->threads.size() > executor->low_watermark) {
@@ -59,7 +58,7 @@ void perform(Executor *executor) {
                 }
                 executor->free_threads--;
             }
-//            executor->_logger->debug("stop waiting");
+            // stop waiting
             if (executor->tasks.empty()) {
                 continue;
             }

@@ -29,7 +29,10 @@ namespace Network {
 namespace MTblocking {
 
 // See Server.h
-ServerImpl::ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl) : Server(ps, pl) {}
+ServerImpl::ServerImpl(std::shared_ptr<Afina::Storage> ps, std::shared_ptr<Logging::Service> pl) :
+        Server(ps, pl),
+        max_workers(2),
+        _executor(max_workers, 4, 10, 3000) {}
 
 // See Server.h
 ServerImpl::~ServerImpl() {}
@@ -38,6 +41,7 @@ ServerImpl::~ServerImpl() {}
 void ServerImpl::Start(uint16_t port, uint32_t n_accept, uint32_t n_workers) {
     _logger = pLogging->select("network");
     _logger->info("Start mt_blocking network service");
+    _executor.Start(_logger);
 
     sigset_t sig_mask;
     sigemptyset(&sig_mask);
@@ -90,10 +94,11 @@ void ServerImpl::Stop() {
 void ServerImpl::Join() {
     assert(_thread.joinable());
     _thread.join();
+    _executor.Stop(true);
     close(_server_socket);
 
-    std::unique_lock<std::mutex> lk(one_thread_stopped);
-    alive_workers_number.wait(lk, [this] { return this->workers == 0; });
+//    std::unique_lock<std::mutex> lk(one_thread_stopped);
+//    alive_workers_number.wait(lk, [this] { return this->workers == 0; });
 }
 
 // See Server.h
@@ -133,19 +138,20 @@ void ServerImpl::OnRun() {
             setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *) &tv, sizeof tv);
         }
 
-//        ведь запускалка потоков - однопоточная?
-//        {
-//            std::lock_guard<std::mutex> lg(block_worker_creation);
-        if (workers < max_workers) {
-            ++workers;
-            std::thread(&ServerImpl::user_handler, this, client_socket).detach();
 
-            {
-                std::lock_guard<std::mutex> lg1(set_is_blocked);
-                client_descriptors.insert(client_socket);
-            }
+        if (!_executor.Execute(&ServerImpl::user_handler, this, client_socket)) {
+            close(client_socket);
         }
+
+//        if (workers < max_workers) {
+//            ++workers;
+//            std::thread(&ServerImpl::user_handler, this, client_socket).detach();
+//            {
+//                std::lock_guard<std::mutex> lg1(set_is_blocked);
+//                client_descriptors.insert(client_socket);
+//            }
 //        }
+
     }
 
     // Cleanup on exit...
