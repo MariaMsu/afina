@@ -8,15 +8,28 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <atomic>
+
+
+namespace spdlog {
+class logger;
+}
 
 namespace Afina {
 namespace Concurrency {
+
+class Executor;
+void perform(Executor *executor);
+
 
 /**
  * # Thread pool
  */
 class Executor {
     enum class State {
+        // Threadpool is ready to start
+        kReady,
+
         // Threadpool is fully operational, tasks could be added and get executed
         kRun,
 
@@ -28,8 +41,18 @@ class Executor {
         kStopped
     };
 
-    Executor(std::string name, int size);
+public:
+    //low_watermark - минимальное количество потоков, которое должно быть в пуле.
+    //hight_watermark - максимальное количество потоков в пуле
+    //max_queue_size - максимальное число задач в очереди
+    //idle_time - количество миллисекунд, которое каждый из поток ждет задач.
+    Executor(std::string name, int low_watermark, int hight_watermark, int max_queue_size, int idle_time);
     ~Executor();
+
+    /**
+     * Start thread-pool
+     */
+    void Start(std::shared_ptr<spdlog::logger> logger);
 
     /**
      * Signal thread pool to stop, it will stop accepting new jobs and close threads just after each become
@@ -49,15 +72,20 @@ class Executor {
     template <typename F, typename... Types> bool Execute(F &&func, Types... args) {
         // Prepare "task"
         auto exec = std::bind(std::forward<F>(func), std::forward<Types>(args)...);
+        {
+            std::unique_lock<std::mutex> lock(this->mutex);
+            if (state != State::kRun || tasks.size() >= max_queue_size) {
+                return false;
+            }
 
-        std::unique_lock<std::mutex> lock(this->mutex);
-        if (state != State::kRun) {
-            return false;
+            // Enqueue new task
+            tasks.push_back(exec);
+            if (free_threads == 0 && threads.size() < hight_watermark) {
+//                threads.push_back(std::thread(&perform, this));
+                threads.push_back(std::thread(&perform, this));
+            }
+            empty_condition.notify_one();
         }
-
-        // Enqueue new task
-        tasks.push_back(exec);
-        empty_condition.notify_one();
         return true;
     }
 
@@ -84,7 +112,12 @@ private:
     std::condition_variable empty_condition;
 
     /**
-     * Vector of actual threads that perorm execution
+     * Conditional variable to await for server to stop
+     */
+    std::condition_variable stop_condition;
+
+    /**
+     * Vector of actual threads that perform execution
      */
     std::vector<std::thread> threads;
 
@@ -97,7 +130,18 @@ private:
      * Flag to stop bg threads
      */
     State state;
+
+    const int low_watermark;
+    const int hight_watermark;
+    const int max_queue_size;
+    const int idle_time;
+    int free_threads;
+    std::shared_ptr<spdlog::logger> _logger;
+
+    void _erase_thread();
+
 };
+
 
 } // namespace Concurrency
 } // namespace Afina
